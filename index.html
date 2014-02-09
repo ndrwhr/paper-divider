@@ -1,0 +1,249 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Paper Divider</title>
+    <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:300' rel='stylesheet' type='text/css'>
+    <style type="text/css">
+        body, html {
+            padding: 0;
+            margin: 0;
+        }
+
+        body {
+            background: #fafafa;
+            font-size: 19px;
+            font-family: 'Source Sans Pro', sans-serif;
+            color: #5a5a5a;
+            width: 700px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+
+        h1 {
+            position: relative;
+            font-size: 50px;
+            margin: 40px 0;
+            font-weight: 300;
+        }
+
+        p {
+            width: 700px;
+        }
+
+        .example {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid rgba(0,0,0,0.2);
+            font-size: 0;
+            margin: 25px 0 50px;
+            background: white;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+        .example > div {
+            position: relative;
+            display: inline-block;
+            box-sizing: border-box;
+            background: rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-top: none;
+            border-left: none;
+        }
+
+        input[type="number"] {
+            padding: 4px 8px 5px;
+            width: 75px;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-weight: 300;
+            border-radius: 3px;
+            border: 1px solid rgba(0,0,0,0.2);
+            font-size: 20px;
+        }
+
+        button {
+            padding: 4px 8px 5px;
+            background: #5a5a5a;
+            border: none;
+            color: #fafafa;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+            font-weight: 300;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+
+        td {
+            font-size: 25px;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-weight: 300;
+        }
+
+        td:first-child {
+            padding-right: 20px;
+        }
+
+        tr:nth-child(2n+1) td {
+            padding-top: 20px;
+        }
+
+        .app {
+            display: flex;
+        }
+
+        .app .example {
+            margin-left: 20px;
+        }
+
+        a, a:visited {
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <h1>Paper Divider</h1>
+
+    <p>This is a tool I use to help figure out how best to divide up large sheets of paper into small identical sheet with minimal waste. I primarily use this tool to help divide up <a href="http://en.wikipedia.org/wiki/Washi">washi</a>, or other large sheets of paper, when making <a href="http://en.wikipedia.org/wiki/Modular_origami">modular origami</a>.</p>
+
+    <p>Units do not matter (as long as you're consistent). Source code can be found <a href="#">here</a>.</p>
+
+    <div class="app">
+        <table>
+            <tr>
+                <td>Washi Width</td>
+                <td  class="input-cell"><input size="4" id="rawWidth" type="number" value="55" min="1" tabIndex="1"/></td>
+                <td rowspan="2"><button onClick="swapDimensions('raw')" title="switch">⇅</button></td>
+            </tr>
+            <tr>
+                <td>Washi Height</td>
+                <td class="input-cell"><input size="4" id="rawHeight" type="number" value="76" min="1" tabIndex="2"/></td>
+            </tr>
+            <tr>
+                <td>Unit Width</td>
+                <td  class="input-cell"><input size="4" id="unitWidth" type="number" value="7" min="1" step="0.25" tabIndex="3"/></td>
+                <td rowspan="2"><button onClick="swapDimensions('unit')" title="switch">⇅</button></td>
+            </tr>
+            <tr>
+                <td>Unit Height</td>
+                <td class="input-cell"><input size="4" id="unitHeight" type="number" value="7" min="1" step="0.25" tabIndex="4"/></td>
+            </tr>
+            <tr>
+                <td>Number of Units</td>
+                <td><input id="num" type="number" value="30" tabIndex="5"/></td>
+            </tr>
+            <tr>
+                <td>Unit Ratio (w/h)</td>
+                <td class="unit-ratio"></td>
+            </tr>
+            <tr>
+                <td colspan="2"><button class="optimize" onClick="setOptimumUnitSize()">Optimize Washi Paper Usage</button></td>
+            </tr>
+        </table>
+
+        <div class="example"></div>
+    </div>
+
+    <script type="text/javascript">
+        function restoreValues(inputs){
+            var values = JSON.parse(localStorage.getItem('values') || '{}');
+
+            Object.keys(inputs).forEach(function(field){
+                if (values[field] !== undefined) inputs[field].value = values[field];
+            });
+        }
+
+        function saveValues(inputs){
+            var values = Object.keys(inputs).reduce(function(acc, field){
+                acc[field] = inputs[field].value;
+                return acc;
+            }, {});
+
+            localStorage.setItem('values', JSON.stringify(values, null, 4));
+        }
+
+        function drawExample(inputs){
+            saveValues(inputs);
+
+            var rawHeight = inputs.rawHeight.valueAsNumber;
+            var rawWidth = inputs.rawWidth.valueAsNumber;
+            var num = inputs.num.valueAsNumber;
+            var unitWidth = inputs.unitWidth.valueAsNumber;
+            var unitHeight = inputs.unitHeight.valueAsNumber;
+
+            var exampleEl = document.querySelector('.example');
+            exampleWidth = parseFloat(getComputedStyle(exampleEl).width)
+            exampleHeight = (exampleWidth * rawHeight / rawWidth);
+            exampleEl.style.height = Math.floor(exampleHeight) + 'px';
+            exampleEl.innerHTML = '';
+
+            for (var i = 0; i < num; i ++){
+                var d = document.createElement('div');
+                d.style.width = (exampleWidth * unitWidth / rawWidth) + 'px';
+                d.style.height = (exampleHeight * unitHeight / rawHeight) + 'px';
+                exampleEl.appendChild(d);
+            }
+
+            document.querySelector('.unit-ratio').innerHTML = (Math.floor(100 * unitWidth / unitHeight) / 100);
+        }
+
+        function swapDimensions(type){
+            var width = document.querySelector('#' + type + 'Width');
+            var height = document.querySelector('#' + type + 'Height');
+
+            var temp = width.value;
+            width.value = height.value;
+            height.value = temp;
+
+            drawExample();
+        }
+
+        window.addEventListener('DOMContentLoaded', function(){
+            var inputs = {};
+
+            window.drawExample = drawExample.bind(null, inputs);
+            window.setOptimumUnitSize = setOptimumUnitSize.bind(null, inputs);
+
+            ['rawHeight', 'rawWidth', 'num', 'unitWidth', 'unitHeight'].forEach(function(field){
+                inputs[field] = document.querySelector('#' + field);
+                inputs[field].addEventListener('change', drawExample);
+            });
+
+            restoreValues(inputs)
+
+            drawExample();
+        });
+
+        function setOptimumUnitSize(inputs){
+            var best = {
+                area: -Infinity,
+                width: 0,
+                height: 0
+            };
+
+            // At all times we should maintain this ratio for the units
+            var unitRatio = inputs.unitWidth.valueAsNumber / inputs.unitHeight.valueAsNumber;
+
+            var numRows = 0;
+            var rowHeight, unitWidth, numUnitsPerRow;
+            var totalNumberOfUnits;
+
+            do {
+                numRows++;
+                rowHeight = (inputs.rawHeight.valueAsNumber / numRows);
+                unitWidth = rowHeight * unitRatio;
+                numUnitsPerRow = Math.floor(inputs.rawWidth.valueAsNumber / unitWidth)
+
+            } while(numUnitsPerRow * numRows < inputs.num.valueAsNumber);
+
+            inputs.unitWidth.value = unitWidth;
+            inputs.unitHeight.value = rowHeight;
+
+            drawExample();
+        };
+    </script>
+</body>
+</html>
